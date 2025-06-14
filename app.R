@@ -75,18 +75,18 @@ ui <- page_navbar(
     ),
     br(),
     fluidRow(
-      column(
-        6,
+      div(
+        class = "col-sm-6 d-flex justify-content-end",
         sliderInput("sample_size",
-          "Sample Size:",
+          "",
           min = 1,
           max = 10000,
           value = 1000,
           step = 1
         )
       ),
-      column(
-        6,
+      div(
+        class = "col-sm-6 d-flex align-items-center",
         actionButton("generate", "Generate Histogram", class = "btn-primary")
       )
     )
