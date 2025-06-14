@@ -3,6 +3,7 @@ library(shiny)
 library(DBI)
 library(RSQLite)
 library(ggplot2)
+library(bslib)
 
 # Database setup function
 setup_database <- function() {
@@ -47,24 +48,11 @@ get_event_counts <- function() {
 setup_database()
 
 # Define UI
-ui <- navbarPage(
+ui <- page_navbar(
   title = "tool",
 
-  header = tags$ul(
-    tags$li(
-      tags$a("Event Report",
-             href = "#",
-             onclick = "Shiny.onInputChange('show_report_nav', Math.random()); return false;",
-             style = "cursor: pointer; color: #fff; text-decoration: none;"),
-      class = "nav-item",
-      style = "float: right; list-style: none; margin-right: 15px; margin-top: 15px;"
-    ),
-    class = "nav navbar-nav",
-    style = "margin: 0; padding: 0;"
-  ),
-
   # Main panel
-  tabPanel("main",
+  nav_panel("main",
     fluidRow(
       column(12,
         plotOutput("histogram")
@@ -84,12 +72,13 @@ ui <- navbarPage(
         actionButton("generate", "Generate Histogram", class = "btn-primary")
       )
     )
-  )
+  ),
+  nav_spacer(),
+  nav_item(actionLink("event_report", label = "", icon = icon("chart-simple")))
 )
 
 # Define server logic
 server <- function(input, output, session) {
-
   # Log session start
   isolate({
     log_event("session_start")
@@ -114,7 +103,7 @@ server <- function(input, output, session) {
   })
 
   # Show event report modal when Usage menu is clicked
-  observeEvent(input$show_report_nav, {
+  observeEvent(input$event_report, {
     event_data <- get_event_counts()
 
     showModal(modalDialog(
