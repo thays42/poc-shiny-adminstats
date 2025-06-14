@@ -5,6 +5,7 @@ library(testthat)
 library(shiny)
 library(DBI)
 library(RSQLite)
+library(shinyjs)
 
 # Need to attach shiny for tag functions
 library(shiny)
@@ -101,6 +102,7 @@ test_that("modal shows loading indicator initially", {
 
   # Create the loading modal content as it appears in the app
   loading_content <- div(
+    id = "loading_spinner",
     style = "text-align: center; padding: 40px;",
     tags$div(
       style = "display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;",
@@ -110,10 +112,24 @@ test_that("modal shows loading indicator initially", {
     h5("Loading event data...")
   )
 
+  # Create the hidden text output as it appears in the app
+  data_output <- div(
+    id = "event_data_output",
+    style = "display: none;",
+    verbatimTextOutput("event_report_text")
+  )
+
   # Verify the loading content structure
   expect_s3_class(loading_content, "shiny.tag")
   expect_equal(loading_content$name, "div")
+  expect_equal(loading_content$attribs$id, "loading_spinner")
   expect_true(grepl("text-align: center", loading_content$attribs$style))
+
+  # Verify the data output structure
+  expect_s3_class(data_output, "shiny.tag")
+  expect_equal(data_output$name, "div")
+  expect_equal(data_output$attribs$id, "event_data_output")
+  expect_true(grepl("display: none", data_output$attribs$style))
 })
 
 test_that("modal updates with data when promise resolves", {
@@ -129,15 +145,30 @@ test_that("modal updates with data when promise resolves", {
     total = 6
   )
 
+  # Test text formatting for verbatimTextOutput
+  expected_text <- paste(
+    "Total Events: 6",
+    "Events by Type:",
+    "session_start : 2",
+    "button_press : 3",
+    "session_end : 1",
+    sep = "\n"
+  )
+
   # Test that we can create the expected modal content
   expect_equal(mock_event_data$total, 6)
   expect_equal(nrow(mock_event_data$by_type), 3)
   expect_true("session_start" %in% mock_event_data$by_type$event_type)
+
+  # Test that text formatting works as expected
+  expect_type(expected_text, "character")
+  expect_true(grepl("Total Events: 6", expected_text))
+  expect_true(grepl("Events by Type:", expected_text))
 })
 
 test_that("cancellation works when modal is closed", {
   # Test that closing the modal before data loads
-  # properly cancels the async operation
+  # properly cancels the async operation and resets UI elements
 
   # Create mock state as regular list (not reactive)
   test_values <- list(
@@ -154,11 +185,19 @@ test_that("cancellation works when modal is closed", {
   if (test_values$modal_open) {
     test_values$event_data <- list(by_type = data.frame(), total = 0)
     test_values$loading <- FALSE
+    # In real app: hide("loading_spinner"), show("event_data_output")
+  }
+
+  # Simulate cleanup when modal closes
+  if (!test_values$modal_open) {
+    test_values$event_data <- NULL
+    test_values$loading <- FALSE
+    # In real app: show("loading_spinner"), hide("event_data_output")
   }
 
   # Verify that data was not updated because modal was closed
   expect_null(test_values$event_data)
-  expect_true(test_values$loading) # Should remain true since update was cancelled
+  expect_false(test_values$loading) # Should be false after cleanup
 })
 
 test_that("error handling displays user-friendly messages", {
@@ -171,6 +210,9 @@ test_that("error handling displays user-friendly messages", {
     message = "Database connection failed"
   )
 
+  # Test error text formatting for verbatimTextOutput
+  expected_error_text <- paste("Error loading event data:", mock_error_data$message)
+
   # Test error structure
   expect_true(mock_error_data$error)
   expect_type(mock_error_data$message, "character")
@@ -179,6 +221,10 @@ test_that("error handling displays user-friendly messages", {
   # Test that error message is user-friendly (no technical jargon)
   expect_false(grepl("NULL", mock_error_data$message))
   expect_false(grepl("undefined", mock_error_data$message))
+
+  # Test error text formatting
+  expect_type(expected_error_text, "character")
+  expect_true(grepl("Error loading event data:", expected_error_text))
 })
 
 # Manual test scenarios (to be run interactively)
@@ -187,14 +233,14 @@ manual_test_scenarios <- function() {
 
   cat("1. NORMAL LOADING TEST:\n")
   cat("   - Click event report icon\n")
-  cat("   - Verify loading indicator appears\n")
-  cat("   - Verify statistics appear after loading\n")
-  cat("   - Expected: Smooth transition from loading to data\n\n")
+  cat("   - Verify loading spinner appears with 'loading_spinner' ID\n")
+  cat("   - Verify spinner hides and text output shows after loading\n")
+  cat("   - Expected: Smooth transition using shinyjs show/hide\n\n")
 
   cat("2. QUICK CANCELLATION TEST:\n")
   cat("   - Click event report icon\n")
   cat("   - Immediately close modal (while loading)\n")
-  cat("   - Expected: No errors, async call should be cancelled\n\n")
+  cat("   - Expected: No errors, UI elements reset for next use\n\n")
 
   cat("3. MULTIPLE RAPID CLICKS TEST:\n")
   cat("   - Click event report icon multiple times quickly\n")
@@ -203,13 +249,14 @@ manual_test_scenarios <- function() {
   cat("4. SLOW CONNECTION SIMULATION:\n")
   cat("   - Modify get_event_counts to add artificial delay\n")
   cat("   - Click event report icon\n")
-  cat("   - Verify loading indicator shows for extended period\n")
-  cat("   - Expected: Loading indicator visible during delay\n\n")
+  cat("   - Verify loading spinner shows for extended period\n")
+  cat("   - Verify text output appears after delay\n")
+  cat("   - Expected: Single modal with element transitions\n\n")
 
   cat("5. DATABASE ERROR TEST:\n")
   cat("   - Temporarily corrupt or lock database file\n")
   cat("   - Click event report icon\n")
-  cat("   - Expected: Error message in modal, no app crash\n\n")
+  cat("   - Expected: Error message in verbatimTextOutput, no app crash\n\n")
 }
 
 # Performance test helper

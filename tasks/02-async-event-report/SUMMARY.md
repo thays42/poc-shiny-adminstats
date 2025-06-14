@@ -18,22 +18,23 @@ This document summarizes the implementation of asynchronous event report functio
 - Non-blocking database queries with `multisession` plan
 - Maintains same data structure as synchronous version
 
-### 2. Interactive Loading States
-- Immediate modal display with CSS-animated loading spinner
-- "Loading event data..." message for user feedback
-- Smooth transition from loading to data display
+### 2. Single Modal with shinyjs Transitions
+- Immediate modal display with CSS-animated loading spinner (loading_spinner ID)
+- Hidden verbatimTextOutput element for data display (event_data_output ID)
+- Smooth shinyjs show/hide transitions between loading and data elements
 - No UI blocking during database operations
 
-### 3. Smart Cancellation Logic
+### 3. Smart Cancellation with UI Reset
 - Modal state tracking with `modal_open` flag
 - Promise results ignored if modal closed before resolution
+- UI elements properly reset for next use (spinner shown, output hidden)
 - Prevents memory leaks and unnecessary processing
 - Graceful handling of user interactions
 
-### 4. Robust Error Handling
-- User-friendly error messages for database failures
+### 4. Robust Error Handling in Text Output
+- User-friendly error messages for database failures in verbatimTextOutput
 - Application stability maintained during errors
-- Red-styled error display in modal
+- Error messages displayed in same text area as data
 - Graceful degradation of functionality
 
 ### 5. State Management
@@ -49,6 +50,7 @@ This document summarizes the implementation of asynchronous event report functio
 ```r
 library(promises)  # For async operations
 library(future)    # For background processing
+library(shinyjs)   # For UI element show/hide transitions
 ```
 
 ### Key Components
@@ -62,20 +64,30 @@ get_event_counts_async <- function() {
 }
 ```
 
-#### Loading Modal
-- CSS-animated spinner with rotation animation
-- Centered layout with loading message
-- Immediate display on user interaction
+#### Single Modal with Element Transitions
+- CSS-animated spinner with rotation animation (loading_spinner ID)
+- Hidden verbatimTextOutput for data display (event_data_output ID)
+- shinyjs show/hide transitions between elements
+- Immediate modal display on user interaction
 
-#### Promise Handling
+#### Promise Handling with UI Transitions
 ```r
 promise %...>% (function(event_data) {
   if (values$modal_open) {
     values$event_data <- event_data
     values$loading <- FALSE
+    # Hide loading spinner and show event data
+    hide("loading_spinner")
+    show("event_data_output")
   }
 }) %...!% (function(error) {
-  # Error handling logic
+  # Handle errors with UI transitions
+  if (values$modal_open) {
+    values$event_data <- list(error = TRUE, message = as.character(error))
+    values$loading <- FALSE
+    hide("loading_spinner")
+    show("event_data_output")
+  }
 })
 ```
 
@@ -99,10 +111,11 @@ promise %...>% (function(event_data) {
 
 ### Core Implementation
 - **`app.R`**: Main async functionality integration
-  - Added promises and future libraries
-  - Implemented async event report handler
-  - Added loading state management
-  - Enhanced error handling
+  - Added promises, future, and shinyjs libraries
+  - Implemented single modal with show/hide element transitions
+  - Added loading state management with UI element IDs
+  - Enhanced error handling in verbatimTextOutput
+  - Added renderText output for formatted event data
 
 ### Testing Suite
 - **`test_async_event_report.R`**: Comprehensive unit tests
@@ -120,32 +133,38 @@ promise %...>% (function(event_data) {
 - UI blocked during database queries
 - No loading feedback for users
 - Risk of UI freeze on slow queries
+- Modal content created after data loads
 
-### After (Asynchronous)
-- Modal opens immediately with loading indicator
-- UI remains fully responsive
-- Clear visual feedback during operations
-- Cancellation support for better UX
-- Robust error handling
+### After (Asynchronous with shinyjs)
+- Single modal opens immediately with loading spinner
+- UI remains fully responsive during async operations
+- Smooth shinyjs transitions between loading and data elements
+- Text-based output in verbatimTextOutput format
+- Cancellation support with proper UI element reset
+- Robust error handling in same text output area
 
 ## 🧪 Manual Testing Guide
 
 ### Basic Functionality
 1. Run app: `runApp('app.R')`
 2. Click chart icon in navigation
-3. Observe loading spinner
-4. Verify statistics display correctly
+3. Observe loading spinner (loading_spinner element)
+4. Watch smooth transition to text output (event_data_output element)
+5. Verify statistics display correctly in verbatimTextOutput format
 
 ### Cancellation Testing
 1. Open event report modal
-2. Immediately close modal
-3. Verify no errors occur
-4. Repeat to test robustness
+2. Immediately close modal during loading
+3. Verify no errors occur and UI resets properly
+4. Reopen modal - should show spinner again (proper reset)
+5. Repeat to test robustness
 
 ### Performance Testing
 1. Generate multiple events via histogram button
 2. Open event report to see loading duration
-3. Test cancellation during longer operations
+3. Watch smooth shinyjs transitions from spinner to text
+4. Test cancellation during longer operations
+5. Verify UI elements reset properly after cancellation
 
 ### Slow Connection Simulation
 Add delay to test loading states:
@@ -180,19 +199,21 @@ get_event_counts_async <- function() {
 
 ### Immediate Benefits
 - **Responsive UI**: No more freezing during database queries
-- **Visual Feedback**: Clear loading indicators
-- **Cancellation**: Users can abort slow operations
-- **Error Recovery**: Graceful handling of database issues
+- **Smooth Transitions**: shinyjs show/hide animations between UI elements
+- **Visual Feedback**: Clear loading indicators with element IDs
+- **Cancellation**: Users can abort slow operations with proper UI reset
+- **Error Recovery**: Graceful handling of database issues in text output
 
 ### Technical Benefits
-- **Non-blocking**: Background processing
-- **Resource Efficient**: Cancellation prevents waste
-- **Maintainable**: Clean separation of concerns
-- **Testable**: Comprehensive test suite
+- **Non-blocking**: Background processing with async operations
+- **Resource Efficient**: Cancellation prevents waste with UI cleanup
+- **Single Modal**: Cleaner UI with element transitions instead of modal replacement
+- **Maintainable**: Clean separation of concerns with identified UI elements
+- **Testable**: Comprehensive test suite including shinyjs functionality
 
 ## 🎉 Conclusion
 
-The async event report functionality has been successfully implemented and thoroughly tested. The implementation provides a significant improvement in user experience while maintaining the same data display format and functionality as the original synchronous version.
+The shinyjs-based async event report functionality has been successfully implemented and thoroughly tested. The implementation provides a significant improvement in user experience with smooth UI transitions, while displaying data in a clean verbatimTextOutput format that maintains all the information from the original synchronous version.
 
 **Status**: ✅ Ready for Production Use
 

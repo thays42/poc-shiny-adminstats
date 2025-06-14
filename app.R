@@ -6,6 +6,7 @@ library(ggplot2)
 library(bslib)
 library(promises)
 library(future)
+library(shinyjs)
 
 # Database setup function
 setup_database <- function() {
@@ -64,6 +65,8 @@ ui <- page_navbar(
   # Main panel
   nav_panel(
     "main",
+    # Initialize shinyjs within the panel
+    useShinyjs(),
     fluidRow(
       column(
         12,
@@ -127,17 +130,49 @@ server <- function(input, output, session) {
     })
   })
 
+  # Render event report text output
+  output$event_report_text <- renderText({
+    if (!is.null(values$event_data) && is.null(values$event_data$error)) {
+      # Format the event data as text
+      total_text <- paste("Total Events:", values$event_data$total)
+
+      if (nrow(values$event_data$by_type) > 0) {
+        type_text <- paste(
+          "Events by Type:",
+          paste(
+            sapply(seq_len(nrow(values$event_data$by_type)), function(i) {
+              row <- values$event_data$by_type[i, ]
+              paste(row$event_type, ":", row$count)
+            }),
+            collapse = "\n"
+          ),
+          sep = "\n"
+        )
+        paste(total_text, type_text, sep = "\n\n")
+      } else {
+        paste(total_text, "No events recorded yet.", sep = "\n\n")
+      }
+    } else if (!is.null(values$event_data) && !is.null(values$event_data$error)) {
+      paste("Error loading event data:", values$event_data$message)
+    } else {
+      ""
+    }
+  })
+
   # Show event report modal when Usage menu is clicked (async version)
   observeEvent(input$event_report, {
-    # Set loading state and show modal with spinner
+    # Set loading state and show modal with both elements
     values$loading <- TRUE
     values$event_data <- NULL
     values$modal_open <- TRUE
 
-    # Show modal with loading indicator
+    # Show modal with both loading indicator and hidden text output
     showModal(modalDialog(
       title = "Event Report",
+
+      # Loading indicator (initially visible)
       div(
+        id = "loading_spinner",
         style = "text-align: center; padding: 40px;",
         tags$div(
           style = "display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;",
@@ -145,6 +180,13 @@ server <- function(input, output, session) {
         ),
         br(), br(),
         h5("Loading event data...")
+      ),
+
+      # Event data output (initially hidden)
+      div(
+        id = "event_data_output",
+        style = "display: none;",
+        verbatimTextOutput("event_report_text")
       ),
       easyClose = TRUE,
       footer = modalButton("Close")
@@ -156,54 +198,25 @@ server <- function(input, output, session) {
       if (values$modal_open) {
         values$event_data <- event_data
         values$loading <- FALSE
+
+        # Hide loading spinner and show event data
+        hide("loading_spinner")
+        show("event_data_output")
       }
     }) %...!% (function(error) {
       # Handle errors
       if (values$modal_open) {
         values$event_data <- list(error = TRUE, message = as.character(error))
         values$loading <- FALSE
+
+        # Hide loading spinner and show error data
+        hide("loading_spinner")
+        show("event_data_output")
       }
     })
   })
 
-  # Update modal content when data loads
-  observe({
-    if (values$modal_open && !values$loading && !is.null(values$event_data)) {
-      if (!is.null(values$event_data$error)) {
-        # Show error message
-        showModal(modalDialog(
-          title = "Event Report - Error",
-          div(
-            style = "color: red;",
-            h4("Error loading event data"),
-            p(values$event_data$message)
-          ),
-          easyClose = TRUE,
-          footer = modalButton("Close")
-        ))
-      } else {
-        # Show data
-        showModal(modalDialog(
-          title = "Event Report",
-          h4("Total Events: ", values$event_data$total),
-          br(),
-          h5("Events by Type:"),
-          if (nrow(values$event_data$by_type) > 0) {
-            tagList(
-              lapply(seq_len(nrow(values$event_data$by_type)), function(i) {
-                row <- values$event_data$by_type[i, ]
-                p(paste(row$event_type, ":", row$count))
-              })
-            )
-          } else {
-            p("No events recorded yet.")
-          },
-          easyClose = TRUE,
-          footer = modalButton("Close")
-        ))
-      }
-    }
-  })
+
 
   # Handle modal close to cancel async operation
   # Use a more reliable method to detect modal close
@@ -215,6 +228,10 @@ server <- function(input, output, session) {
         # Clear any pending data
         values$event_data <- NULL
         values$loading <- FALSE
+
+        # Reset UI elements for next time
+        show("loading_spinner")
+        hide("event_data_output")
       }
     }
   })
