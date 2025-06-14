@@ -11,7 +11,7 @@ A simple R Shiny application that generates random histograms with configurable 
   - Session start (when the app loads)
   - Button press (when the histogram generation button is clicked)
   - Session end (when the user closes the app)
-- **Event Reporting**: Click "Usage" in the navigation menu to view a modal with statistics about logged events
+- **Event Reporting**: Click "Event Report" in the navigation bar to view a modal with statistics about logged events
 
 ## Prerequisites
 
@@ -53,10 +53,10 @@ The application uses the following R packages (automatically managed by renv):
 
 ### Application Interface
 
-- **Navigation Bar**: Features the application title "tool" and a "Usage" menu for accessing reports
+- **Navigation Bar**: Features the application title "tool" and an "Event Report" link for accessing reports
 - **Sample Size Slider**: Controls the number of random samples (1 to 10,000, default 1,000)
 - **Generate Histogram Button**: Creates a new histogram with the selected number of random normal values
-- **Usage Menu**: Click to open a modal displaying event statistics from the database
+- **Event Report Link**: Click to open a modal displaying event statistics from the database
 - **Histogram Display**: Shows the generated histogram in the main panel with dynamic title showing sample size
 - **Responsive Layout**: Controls are arranged below the plot for optimal viewing on different screen sizes
 

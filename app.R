@@ -50,6 +50,19 @@ setup_database()
 ui <- navbarPage(
   title = "tool",
 
+  header = tags$ul(
+    tags$li(
+      tags$a("Event Report",
+             href = "#",
+             onclick = "Shiny.onInputChange('show_report_nav', Math.random()); return false;",
+             style = "cursor: pointer; color: #fff; text-decoration: none;"),
+      class = "nav-item",
+      style = "float: right; list-style: none; margin-right: 15px; margin-top: 15px;"
+    ),
+    class = "nav navbar-nav",
+    style = "margin: 0; padding: 0;"
+  ),
+
   # Main panel
   tabPanel("main",
     fluidRow(
@@ -70,22 +83,6 @@ ui <- navbarPage(
       column(6,
         actionButton("generate", "Generate Histogram", class = "btn-primary")
       )
-    )
-  ),
-
-  # Right-aligned nav menu
-  navbarMenu("Usage",
-    tabPanel("Event Report",
-      value = "usage_report",
-      # This will trigger the modal instead of showing content
-      tags$script(HTML("
-        $(document).ready(function(){
-          $('a[data-value=\"usage_report\"]').click(function(e){
-            e.preventDefault();
-            Shiny.onInputChange('show_report_nav', Math.random());
-          });
-        });
-      "))
     )
   )
 )

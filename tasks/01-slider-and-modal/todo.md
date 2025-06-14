@@ -83,6 +83,14 @@ All tasks have been completed successfully:
 
 All original features have been maintained while successfully implementing the requested UI improvements.
 
+### Task 7: Replace tabPanel with nav_item for Event Report
+- [x] Replace the "Event Report" tabPanel with a nav_item action link
+- [x] Ensure the action link triggers the same modal functionality
+- [x] Verify that clicking the link doesn't affect which nav tab is open
+- **Inputs**: Current navbarMenu with tabPanel implementation
+- **Outputs**: Direct action link in navbar header without tab creation
+- **Constraints**: Same modal functionality, no tab switching behavior
+
 ## Assumptions
 - The database functionality and event logging should remain unchanged
 - The histogram generation logic only needs to accept variable sample size
