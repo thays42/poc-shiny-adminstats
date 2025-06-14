@@ -47,18 +47,45 @@ get_event_counts <- function() {
 setup_database()
 
 # Define UI
-ui <- fluidPage(
-  titlePanel("Random Histogram Generator with Event Logging"),
+ui <- navbarPage(
+  title = "tool",
 
-  sidebarLayout(
-    sidebarPanel(
-      actionButton("generate", "Generate Histogram", class = "btn-primary"),
-      br(), br(),
-      actionButton("show_report", "Show Event Report", class = "btn-info")
+  # Main panel
+  tabPanel("main",
+    fluidRow(
+      column(12,
+        plotOutput("histogram")
+      )
     ),
+    br(),
+    fluidRow(
+      column(6,
+        sliderInput("sample_size",
+                   "Sample Size:",
+                   min = 1,
+                   max = 10000,
+                   value = 1000,
+                   step = 1)
+      ),
+      column(6,
+        actionButton("generate", "Generate Histogram", class = "btn-primary")
+      )
+    )
+  ),
 
-    mainPanel(
-      plotOutput("histogram")
+  # Right-aligned nav menu
+  navbarMenu("Usage",
+    tabPanel("Event Report",
+      value = "usage_report",
+      # This will trigger the modal instead of showing content
+      tags$script(HTML("
+        $(document).ready(function(){
+          $('a[data-value=\"usage_report\"]').click(function(e){
+            e.preventDefault();
+            Shiny.onInputChange('show_report_nav', Math.random());
+          });
+        });
+      "))
     )
   )
 )
@@ -76,21 +103,21 @@ server <- function(input, output, session) {
     # Log button press event
     log_event("button_press")
 
-    # Generate random sample and create histogram
-    sample_data <- rnorm(1000)
+    # Generate random sample using slider value
+    sample_data <- rnorm(input$sample_size)
 
     output$histogram <- renderPlot({
       ggplot(data.frame(x = sample_data), aes(x = x)) +
         geom_histogram(bins = 30, fill = "skyblue", color = "black", alpha = 0.7) +
-        labs(title = "Histogram of 1000 Random Normal Values",
+        labs(title = paste("Histogram of", input$sample_size, "Random Normal Values"),
              x = "Value",
              y = "Frequency") +
         theme_minimal()
     })
   })
 
-  # Show event report modal
-  observeEvent(input$show_report, {
+  # Show event report modal when Usage menu is clicked
+  observeEvent(input$show_report_nav, {
     event_data <- get_event_counts()
 
     showModal(modalDialog(

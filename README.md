@@ -1,15 +1,17 @@
 # Shiny Reporting Page
 
-A simple R Shiny application that generates random histograms and logs events to a SQLite database.
+A simple R Shiny application that generates random histograms with configurable sample sizes and logs events to a SQLite database.
 
 ## Features
 
-- **Random Histogram Generation**: Click the "Generate Histogram" button to create a histogram of 1000 random samples from a normal distribution
+- **Random Histogram Generation**: Click the "Generate Histogram" button to create a histogram of random samples from a normal distribution
+- **Configurable Sample Size**: Use the slider to select sample sizes from 1 to 10,000 (default: 1,000)
+- **Modern UI**: Clean navbar interface with the application title "tool" and main panel
 - **Event Logging**: The application automatically logs events to a SQLite database:
   - Session start (when the app loads)
   - Button press (when the histogram generation button is clicked)
   - Session end (when the user closes the app)
-- **Event Reporting**: Click the "Show Event Report" button to view a modal with statistics about logged events
+- **Event Reporting**: Click "Usage" in the navigation menu to view a modal with statistics about logged events
 
 ## Prerequisites
 
@@ -51,9 +53,12 @@ The application uses the following R packages (automatically managed by renv):
 
 ### Application Interface
 
-- **Generate Histogram Button**: Creates a new histogram with 1000 random normal values
-- **Show Event Report Button**: Opens a modal displaying event statistics from the database
-- **Histogram Display**: Shows the generated histogram in the main panel
+- **Navigation Bar**: Features the application title "tool" and a "Usage" menu for accessing reports
+- **Sample Size Slider**: Controls the number of random samples (1 to 10,000, default 1,000)
+- **Generate Histogram Button**: Creates a new histogram with the selected number of random normal values
+- **Usage Menu**: Click to open a modal displaying event statistics from the database
+- **Histogram Display**: Shows the generated histogram in the main panel with dynamic title showing sample size
+- **Responsive Layout**: Controls are arranged below the plot for optimal viewing on different screen sizes
 
 ### Database
 
@@ -68,12 +73,17 @@ The application creates a SQLite database file named `events.db` in the project 
 
 ```
 shiny-reporting-page/
-├── app.R           # Main Shiny application file
-├── events.db       # SQLite database (created automatically)
-├── README.md       # This file
-├── .Rprofile       # R environment configuration
-├── renv.lock       # Package dependency lockfile
-└── renv/           # renv package cache directory
+├── app.R                      # Main Shiny application file
+├── events.db                  # SQLite database (created automatically)
+├── task.md                    # Development task tracking
+├── test_ui_changes.R          # UI functionality tests
+├── test_slider_functionality.R # Slider-specific tests
+├── test_db.R                  # Database functionality tests
+├── run_app.R                  # Helper script to run the application
+├── README.md                  # This file
+├── .Rprofile                  # R environment configuration
+├── renv.lock                  # Package dependency lockfile
+└── renv/                      # renv package cache directory
 ```
 
 ## Development Environment
@@ -120,6 +130,23 @@ library(RSQLite)
 con <- dbConnect(SQLite(), "events.db")
 dbGetQuery(con, "SELECT * FROM events ORDER BY timestamp DESC")
 dbDisconnect(con)
+```
+
+### Running Tests
+
+The application includes comprehensive test suites:
+
+```r
+# Test overall UI functionality
+source("test_ui_changes.R")
+run_all_tests()
+
+# Test slider-specific functionality
+source("test_slider_functionality.R")
+run_slider_tests()
+
+# Test database functionality
+source("test_db.R")
 ```
 
 ## License
